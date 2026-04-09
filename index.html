@@ -119,6 +119,27 @@ svg { width: 100%; height: 100%; }
 .depth-dot.prereq { background: #e17055; }
 .depth-dot.forward { background: #74b9ff; }
 
+/* Skill Chain Modal */
+.chain-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; display: none; align-items: center; justify-content: center; }
+.chain-modal-overlay.open { display: flex; }
+.chain-modal { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px; max-width: 90vw; min-width: 400px; box-shadow: 0 16px 48px var(--shadow); position: relative; overflow: visible; }
+.chain-modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 12px; }
+.chain-modal-title { font-size: 14px; font-weight: 700; color: var(--text-heading); line-height: 1.4; }
+.chain-modal-sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+.chain-modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-dim); line-height: 1; flex-shrink: 0; }
+.chain-modal-close:hover { color: var(--text-heading); }
+.chain-swimlane { display: flex; align-items: flex-start; gap: 0; overflow-x: auto; padding-bottom: 8px; }
+.chain-col { display: flex; flex-direction: column; align-items: center; min-width: 160px; max-width: 200px; flex-shrink: 0; }
+.chain-col-label { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; padding: 3px 10px; border-radius: 4px; background: var(--bg-hover); }
+.chain-col-skills { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 0 8px; }
+.chain-skill-chip { padding: 7px 10px; border-radius: 6px; font-size: 11px; line-height: 1.4; color: var(--text); background: var(--bg-hover); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+.chain-skill-chip:hover { border-color: #0984e3; color: var(--text-heading); }
+.chain-skill-chip.current { background: rgba(9,132,227,0.12); border-color: #0984e3; color: var(--link); font-weight: 600; }
+.chain-connector { display: flex; align-items: center; padding-top: 32px; flex-shrink: 0; }
+.chain-connector svg { overflow: visible; }
+.btn-chain-view { display: inline-block; margin-left: 6px; padding: 3px 10px; font-size: 11px; font-weight: 600; border: 1px solid #0984e3; border-radius: 4px; color: #0984e3; background: transparent; cursor: pointer; transition: all 0.15s; }
+.btn-chain-view:hover { background: #0984e3; color: #fff; }
+
 /* View tabs */
 .view-tabs { position: absolute; top: 16px; right: 16px; z-index: 10; display: flex; gap: 0; background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden; }
 .view-tab { padding: 8px 18px; font-size: 12px; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
@@ -194,8 +215,8 @@ svg { width: 100%; height: 100%; }
       <button class="float-btn" id="resetBtn">Reset</button>
     </div>
     <div class="view-tabs">
-      <button class="view-tab active" data-view="graph">Graph</button>
-      <button class="view-tab" data-view="list">List</button>
+      <button class="view-tab active" data-view="graph">Graph로 보기</button>
+      <button class="view-tab" data-view="list">List로 보기</button>
     </div>
     <svg id="graph"></svg>
     <div class="list-view" id="listView"></div>
@@ -211,6 +232,20 @@ svg { width: 100%; height: 100%; }
       </div>
       <div class="detail-body" id="detailBody"></div>
     </div>
+  </div>
+</div>
+
+<!-- Skill Chain Modal -->
+<div class="chain-modal-overlay" id="chainModalOverlay">
+  <div class="chain-modal" id="chainModal">
+    <div class="chain-modal-header">
+      <div>
+        <div class="chain-modal-title" id="chainModalTitle"></div>
+        <div class="chain-modal-sub">직접 연결된 선행 · 후행 스킬 (Depth 1)</div>
+      </div>
+      <button class="chain-modal-close" id="chainModalClose">&times;</button>
+    </div>
+    <div class="chain-swimlane" id="chainSwimlane"></div>
   </div>
 </div>
 
@@ -370,7 +405,12 @@ function render() {
   // Grade hubs
   const gradeEls = gradeG.selectAll('g').data(data.gradeNodes)
     .join('g')
-    .attr('class', 'grade-hub');
+    .attr('class', 'grade-hub')
+    .attr('cursor', 'grab')
+    .call(d3.drag()
+      .on('start', dragStart)
+      .on('drag', dragging)
+      .on('end', dragEnd));
 
   gradeEls.append('circle')
     .attr('r', d => d.r)
@@ -415,14 +455,15 @@ function render() {
     .attr('pointer-events', 'none')
     .attr('display', showLabels ? 'block' : 'none');
 
-  // Set initial positions: grade hubs fan out from center, skills near their hub
+  // Set initial positions: grade hubs arranged in a circle
   const numGrades = data.gradeNodes.length;
   const hubRadius = Math.min(width, height) * (numGrades <= 2 ? 0.12 : 0.28);
+  const hubSpacing = hubRadius;
   data.gradeNodes.forEach((gn, i) => {
     const angle = (2 * Math.PI * i / numGrades) - Math.PI / 2;
     gn.x = width / 2 + hubRadius * Math.cos(angle);
     gn.y = height / 2 + hubRadius * Math.sin(angle);
-    delete gn.fx; delete gn.fy; // let them float freely
+    delete gn.fx; delete gn.fy;
   });
 
   data.nodes.forEach(n => {
@@ -443,7 +484,7 @@ function render() {
   simulation = d3.forceSimulation(allNodes)
     .force('link', d3.forceLink(allLinks).id(d => d.id)
       .distance(d => {
-        if (d.type === 'root') return hubRadius;
+        if (d.type === 'root') return hubSpacing;
         if (d.type === 'grade') return 55;
         return 100; // prereq links
       })
@@ -506,14 +547,15 @@ function onNodeClick(event, d) {
 }
 
 function highlightChain(clickedNode) {
-  // backward: 선행 스킬 (이 스킬이 target인 링크의 source)
-  // forward:  후행 스킬 (이 스킬이 source인 링크의 target)
+  const linkData = linkG.selectAll('line').data();
+
+  // BFS: 실제로 탐색한 엣지만 기록 (key: `${sid}-->${tid}`)
+  const prereqEdges = new Set(); // 선행 방향 엣지
+  const forwardEdges = new Set(); // 후행 방향 엣지
   const backward = new Set([clickedNode.id]);
   const forward  = new Set([clickedNode.id]);
 
-  const linkData = linkG.selectAll('line').data();
-
-  // BFS with depth limit
+  // 선행 탐색 (target → source 방향)
   let queue = [{ id: clickedNode.id, depth: 0 }];
   while (queue.length) {
     const { id: cur, depth } = queue.shift();
@@ -521,9 +563,15 @@ function highlightChain(clickedNode) {
     linkData.forEach(l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      if (tid === cur && !backward.has(sid)) { backward.add(sid); queue.push({ id: sid, depth: depth + 1 }); }
+      if (tid === cur && !backward.has(sid)) {
+        backward.add(sid);
+        prereqEdges.add(`${sid}-->${tid}`);
+        queue.push({ id: sid, depth: depth + 1 });
+      }
     });
   }
+
+  // 후행 탐색 (source → target 방향)
   queue = [{ id: clickedNode.id, depth: 0 }];
   while (queue.length) {
     const { id: cur, depth } = queue.shift();
@@ -531,15 +579,20 @@ function highlightChain(clickedNode) {
     linkData.forEach(l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      if (sid === cur && !forward.has(tid)) { forward.add(tid); queue.push({ id: tid, depth: depth + 1 }); }
+      if (sid === cur && !forward.has(tid)) {
+        forward.add(tid);
+        forwardEdges.add(`${sid}-->${tid}`);
+        queue.push({ id: tid, depth: depth + 1 });
+      }
     });
   }
 
   const related = new Set([...backward, ...forward]);
+  const activeEdges = new Set([...prereqEdges, ...forwardEdges]);
 
-  // 선행 방향: 주황(#e17055), 후행 방향: 파랑(#74b9ff)
-  const PREREQ_COLOR  = '#e17055'; // 선행 (→ 클릭 노드)
-  const FORWARD_COLOR = '#74b9ff'; // 후행 (클릭 노드 →)
+  const PREREQ_COLOR  = '#e17055';
+  const FORWARD_COLOR = '#74b9ff';
+  const ec = getComputedStyle(document.documentElement).getPropertyValue('--edge-color').trim();
 
   nodeG.selectAll('circle')
     .attr('fill-opacity', d => related.has(d.id) ? 1 : 0.06)
@@ -551,21 +604,19 @@ function highlightChain(clickedNode) {
     .attr('stroke', l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      if (!related.has(sid) || !related.has(tid)) return getComputedStyle(document.documentElement).getPropertyValue('--edge-color').trim();
-      // target이 클릭 노드 방향이면 선행, source가 클릭 노드면 후행
-      if (backward.has(sid) && backward.has(tid)) return PREREQ_COLOR;
-      if (forward.has(sid) && forward.has(tid)) return FORWARD_COLOR;
-      return PREREQ_COLOR;
+      const key = `${sid}-->${tid}`;
+      if (!activeEdges.has(key)) return ec;
+      return prereqEdges.has(key) ? PREREQ_COLOR : FORWARD_COLOR;
     })
     .attr('stroke-opacity', l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      return (related.has(sid) && related.has(tid)) ? 0.85 : 0.03;
+      return activeEdges.has(`${sid}-->${tid}`) ? 0.85 : 0.03;
     })
     .attr('stroke-width', l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      return (related.has(sid) && related.has(tid)) ? 2 : 0.5;
+      return activeEdges.has(`${sid}-->${tid}`) ? 2 : 0.5;
     });
   gradeG.selectAll('g').attr('opacity', 0.3);
 
@@ -592,15 +643,16 @@ function dragging(event, d) {
 }
 function dragEnd(event, d) {
   if (!event.active) simulation.alphaTarget(0.005);
-  if (!d.isGradeHub) { d.fx = null; d.fy = null; }
+  d.fx = null; d.fy = null;
 }
 
 function showDetail(idx) {
   const s = allSkills[idx];
   document.getElementById('detailTitle').textContent = s.skill_name;
-  let html = '<div style="margin-bottom:14px;">';
+  let html = '<div style="margin-bottom:14px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">';
   html += `<span class="badge badge-grade">Grade ${s.grade}</span>`;
   if (s.is_focus_skill) html += '<span class="badge badge-focus">Focus Skill</span>';
+  html += `<button class="btn-chain-view" id="btnChainView" data-idx="${idx}">스킬 관계 보기</button>`;
   html += '</div>';
 
   [['Skill Code', s.skill_code], ['Full Description', s.full_description],
@@ -659,7 +711,280 @@ function showDetail(idx) {
       if (node) highlightChain(node);
     };
   });
+
+  const btnChain = document.getElementById('btnChainView');
+  if (btnChain) {
+    btnChain.onclick = () => showChainModal(parseInt(btnChain.dataset.idx));
+  }
 }
+
+function showChainModal(idx) {
+  const s = allSkills[idx];
+
+  // 직접 선행 스킬 (depth 1)
+  const prereqs = (s.prerequisite_skills || []).map(p => {
+    const i = allSkills.findIndex(sk => sk.grade === p.grade &&
+      sk.full_description.trim().toLowerCase() === p.description.trim().toLowerCase());
+    return i >= 0 ? { idx: i, skill: allSkills[i] } : null;
+  }).filter(Boolean);
+
+  // 직접 후행 스킬 (depth 1)
+  const forwards = allSkills.map((sk, i) => {
+    const hasThis = (sk.prerequisite_skills || []).some(p =>
+      p.grade === s.grade &&
+      p.description.trim().toLowerCase() === s.full_description.trim().toLowerCase()
+    );
+    return hasThis ? { idx: i, skill: sk } : null;
+  }).filter(Boolean);
+
+  // 같은 학년 vs 다른 학년 분리
+  const sameGradePrereqs = prereqs.filter(p => p.skill.grade === s.grade);
+  const sameGradeForwards = forwards.filter(f => f.skill.grade === s.grade);
+  const crossPrereqs = prereqs.filter(p => p.skill.grade !== s.grade);
+  const crossForwards = forwards.filter(f => f.skill.grade !== s.grade);
+
+  const crossPrereqGrades = [...new Set(crossPrereqs.map(p => p.skill.grade))]
+    .sort((a, b) => GRADE_ORDER.indexOf(a) - GRADE_ORDER.indexOf(b));
+  const crossForwardGrades = [...new Set(crossForwards.map(f => f.skill.grade))]
+    .sort((a, b) => GRADE_ORDER.indexOf(a) - GRADE_ORDER.indexOf(b));
+
+  document.getElementById('chainModalTitle').textContent = s.skill_name;
+
+  const container = document.getElementById('chainSwimlane');
+  container.innerHTML = '';
+
+  const COL_W = 170;
+  const COL_GAP = 40;
+  const CHIP_H = 44;
+  const CHIP_GAP = 8;
+  const SAME_GRADE_GAP = 14; // extra gap between same-grade sections
+  const LABEL_H = 32;
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const panelBg = isDark ? '#181a20' : '#ffffff';
+  const borderColor = isDark ? '#2a2d35' : '#ddd';
+  const textColor = isDark ? '#e0e0e0' : '#333';
+  const dimColor = isDark ? '#555' : '#999';
+  const currentBg = isDark ? 'rgba(9,132,227,0.15)' : 'rgba(9,132,227,0.08)';
+
+  // 현재 학년 컬럼 내 수직 스택: [sameGradePrereqs] gap [current] gap [sameGradeForwards]
+  const currentColItems = [
+    ...sameGradePrereqs.map(p => ({ ...p, role: 'prereq' })),
+    { idx, skill: s, isCurrent: true, role: 'current' },
+    ...sameGradeForwards.map(f => ({ ...f, role: 'forward' })),
+  ];
+
+  // 전체 컬럼 목록
+  const colDefs = [
+    ...crossPrereqGrades.map(g => ({ grade: g, type: 'prereq' })),
+    { grade: s.grade, type: 'current' },
+    ...crossForwardGrades.map(g => ({ grade: g, type: 'forward' })),
+  ];
+
+  // 높이 계산: 가장 높은 컬럼 기준
+  const currentColH = currentColItems.length * (CHIP_H + CHIP_GAP) - CHIP_GAP
+    + (sameGradePrereqs.length > 0 ? SAME_GRADE_GAP : 0)
+    + (sameGradeForwards.length > 0 ? SAME_GRADE_GAP : 0);
+
+  const crossColH = (grade, type) => {
+    const items = type === 'prereq'
+      ? crossPrereqs.filter(p => p.skill.grade === grade)
+      : crossForwards.filter(f => f.skill.grade === grade);
+    return items.length * (CHIP_H + CHIP_GAP) - CHIP_GAP;
+  };
+
+  const maxContentH = Math.max(
+    currentColH,
+    ...crossPrereqGrades.map(g => crossColH(g, 'prereq')),
+    ...crossForwardGrades.map(g => crossColH(g, 'forward')),
+    CHIP_H
+  );
+
+  const svgH = LABEL_H + maxContentH + 30;
+  const svgW = colDefs.length * COL_W + (colDefs.length - 1) * COL_GAP;
+
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('width', Math.max(svgW, COL_W));
+  svg.setAttribute('height', svgH);
+  svg.style.overflow = 'visible';
+
+  // 칩 렌더 헬퍼
+  function renderChip(item, chipX, chipY) {
+    const isC = item.isCurrent;
+    const chipBg = isC ? currentBg : (item.role === 'prereq' ? (isDark ? 'rgba(225,112,85,0.08)' : 'rgba(225,112,85,0.05)') : item.role === 'forward' ? (isDark ? 'rgba(116,185,255,0.08)' : 'rgba(116,185,255,0.05)') : panelBg);
+    const chipStroke = isC ? '#0984e3' : item.role === 'prereq' ? '#e17055' : item.role === 'forward' ? '#74b9ff' : borderColor;
+    const chipTextColor = isC ? '#0984e3' : item.role === 'prereq' ? (isDark ? '#e17055' : '#c0392b') : item.role === 'forward' ? (isDark ? '#74b9ff' : '#0984e3') : textColor;
+
+    const rect = document.createElementNS(ns, 'rect');
+    rect.setAttribute('x', chipX); rect.setAttribute('y', chipY);
+    rect.setAttribute('width', COL_W); rect.setAttribute('height', CHIP_H);
+    rect.setAttribute('rx', '6');
+    rect.setAttribute('fill', chipBg);
+    rect.setAttribute('stroke', chipStroke);
+    rect.setAttribute('stroke-width', isC ? '2' : '1');
+    rect.style.cursor = 'pointer';
+    rect.addEventListener('click', () => {
+      document.getElementById('chainModalOverlay').classList.remove('open');
+      showDetail(item.idx);
+    });
+    svg.appendChild(rect);
+
+    const name = item.skill.skill_name;
+    const words = name.split(' ');
+    let line1 = '', line2 = '';
+    words.forEach(w => {
+      if ((line1 + ' ' + w).trim().length <= 22) line1 = (line1 + ' ' + w).trim();
+      else line2 = (line2 + ' ' + w).trim();
+    });
+
+    const t1 = document.createElementNS(ns, 'text');
+    t1.setAttribute('x', chipX + COL_W / 2);
+    t1.setAttribute('y', chipY + (line2 ? 17 : CHIP_H / 2 + 4));
+    t1.setAttribute('text-anchor', 'middle');
+    t1.setAttribute('font-size', '11');
+    t1.setAttribute('fill', chipTextColor);
+    t1.setAttribute('font-weight', isC ? '600' : '400');
+    t1.style.pointerEvents = 'none';
+    t1.textContent = line1;
+    svg.appendChild(t1);
+
+    if (line2) {
+      const t2 = document.createElementNS(ns, 'text');
+      t2.setAttribute('x', chipX + COL_W / 2);
+      t2.setAttribute('y', chipY + 30);
+      t2.setAttribute('text-anchor', 'middle');
+      t2.setAttribute('font-size', '11');
+      t2.setAttribute('fill', chipTextColor);
+      t2.setAttribute('font-weight', isC ? '600' : '400');
+      t2.style.pointerEvents = 'none';
+      t2.textContent = line2.length > 22 ? line2.substring(0, 20) + '…' : line2;
+      svg.appendChild(t2);
+    }
+
+    return { cx: chipX + COL_W / 2, cy: chipY + CHIP_H / 2, right: chipX + COL_W, left: chipX, top: chipY, bottom: chipY + CHIP_H };
+  }
+
+  // 라벨 렌더
+  function renderLabel(x, grade) {
+    const label = document.createElementNS(ns, 'text');
+    label.setAttribute('x', x + COL_W / 2);
+    label.setAttribute('y', 18);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', '11');
+    label.setAttribute('font-weight', '700');
+    label.setAttribute('fill', dimColor);
+    label.setAttribute('letter-spacing', '1');
+    label.textContent = `Grade ${grade}`;
+    svg.appendChild(label);
+  }
+
+  // 경로 그리기 헬퍼
+  function drawPath(x1, y1, x2, y2, color, vertical = false) {
+    const path = document.createElementNS(ns, 'path');
+    let d;
+    if (vertical) {
+      const my = (y1 + y2) / 2;
+      d = `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`;
+    } else {
+      const mx = (x1 + x2) / 2;
+      d = `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+    }
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-opacity', '0.8');
+    svg.insertBefore(path, svg.firstChild);
+  }
+
+  // 컬럼별 x 위치 맵
+  const colX = {};
+  colDefs.forEach((col, ci) => { colX[col.grade + col.type] = ci * (COL_W + COL_GAP); });
+
+  // 현재 학년 컬럼 위치
+  const currentColKey = s.grade + 'current';
+  const curColX = colX[currentColKey];
+
+  // 현재 컬럼 렌더 (수직 배치)
+  renderLabel(curColX, s.grade);
+  const currentChipPositions = {}; // key: item.idx → pos
+  let cy = LABEL_H;
+
+  // 같은 학년 선행
+  sameGradePrereqs.forEach((item, i) => {
+    const pos = renderChip({ ...item, role: 'prereq' }, curColX, cy);
+    currentChipPositions[item.idx] = pos;
+    cy += CHIP_H + CHIP_GAP;
+  });
+  if (sameGradePrereqs.length > 0) cy += SAME_GRADE_GAP;
+
+  // 현재 스킬 — 세로 중앙 정렬을 위해 실제 y 기록
+  const currentChipY = cy;
+  const currentPos = renderChip({ idx, skill: s, isCurrent: true, role: 'current' }, curColX, cy);
+  cy += CHIP_H + CHIP_GAP;
+  if (sameGradeForwards.length > 0) cy += SAME_GRADE_GAP;
+
+  // 같은 학년 후행
+  sameGradeForwards.forEach((item, i) => {
+    const pos = renderChip({ ...item, role: 'forward' }, curColX, cy);
+    currentChipPositions[item.idx] = pos;
+    cy += CHIP_H + CHIP_GAP;
+  });
+
+  // 같은 학년 수직 연결선
+  sameGradePrereqs.forEach(item => {
+    const pos = currentChipPositions[item.idx];
+    drawPath(pos.cx, pos.bottom, currentPos.cx, currentPos.top, '#e17055', true);
+  });
+  sameGradeForwards.forEach(item => {
+    const pos = currentChipPositions[item.idx];
+    drawPath(currentPos.cx, currentPos.bottom, pos.cx, pos.top, '#74b9ff', true);
+  });
+
+  // 교차 학년 컬럼 렌더 + 수평 연결선
+  const totalH = svgH - 30;
+  const crossColCenter = LABEL_H + (totalH - LABEL_H) / 2;
+
+  crossPrereqGrades.forEach(grade => {
+    const key = grade + 'prereq';
+    const cx2 = colX[key];
+    renderLabel(cx2, grade);
+    const items = crossPrereqs.filter(p => p.skill.grade === grade);
+    const startY = LABEL_H + (totalH - LABEL_H - (items.length * (CHIP_H + CHIP_GAP) - CHIP_GAP)) / 2;
+    items.forEach((item, i) => {
+      const chipY = startY + i * (CHIP_H + CHIP_GAP);
+      const pos = renderChip({ ...item, role: 'prereq' }, cx2, chipY);
+      drawPath(pos.right, pos.cy, currentPos.left, currentPos.cy, '#e17055', false);
+    });
+  });
+
+  crossForwardGrades.forEach(grade => {
+    const key = grade + 'forward';
+    const cx2 = colX[key];
+    renderLabel(cx2, grade);
+    const items = crossForwards.filter(f => f.skill.grade === grade);
+    const startY = LABEL_H + (totalH - LABEL_H - (items.length * (CHIP_H + CHIP_GAP) - CHIP_GAP)) / 2;
+    items.forEach((item, i) => {
+      const chipY = startY + i * (CHIP_H + CHIP_GAP);
+      const pos = renderChip({ ...item, role: 'forward' }, cx2, chipY);
+      drawPath(currentPos.right, currentPos.cy, pos.left, pos.cy, '#74b9ff', false);
+    });
+  });
+
+  container.appendChild(svg);
+  document.getElementById('chainModalOverlay').classList.add('open');
+}
+
+// 모달 닫기
+document.getElementById('chainModalClose').onclick = () => {
+  document.getElementById('chainModalOverlay').classList.remove('open');
+};
+document.getElementById('chainModalOverlay').onclick = (e) => {
+  if (e.target === document.getElementById('chainModalOverlay')) {
+    document.getElementById('chainModalOverlay').classList.remove('open');
+  }
+};
 
 function initUI() {
   const domains = [...new Set(allSkills.map(s => s.domain))].sort();
