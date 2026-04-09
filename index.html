@@ -620,6 +620,10 @@ function highlightChain(clickedNode) {
     });
   gradeG.selectAll('g').attr('opacity', 0.3);
 
+  // 노드/라벨 레이어를 엣지 위로 올려서 엣지가 노드를 덮지 않도록
+  nodeG.raise();
+  labelG.raise();
+
   currentHighlight = clickedNode;
 }
 
@@ -631,6 +635,9 @@ function clearHighlight() {
   labelG.selectAll('text').attr('fill-opacity', 1).attr('display', showLabels ? 'block' : 'none');
   linkG.selectAll('line').attr('stroke', ec).attr('stroke-opacity', 0.4).attr('stroke-width', 0.5);
   gradeG.selectAll('g').attr('opacity', 1);
+  // 레이어 순서 복원
+  nodeG.raise();
+  labelG.raise();
   currentHighlight = null;
 }
 
@@ -809,10 +816,12 @@ function showChainModal(idx) {
   svg.setAttribute('height', svgH);
   svg.style.overflow = 'visible';
 
-  // 연결선 레이어 (항상 칩 뒤)
+  // 레이어 순서: 연결선 → 칩 불투명 배경 → 칩 (tint/stroke/text)
   const lineLayer = document.createElementNS(ns, 'g');
+  const chipBgLayer = document.createElementNS(ns, 'g');
   const chipLayer = document.createElementNS(ns, 'g');
   svg.appendChild(lineLayer);
+  svg.appendChild(chipBgLayer);
   svg.appendChild(chipLayer);
 
   // 칩 렌더 헬퍼
@@ -821,6 +830,15 @@ function showChainModal(idx) {
     const chipBg = isC ? currentBg : (item.role === 'prereq' ? (isDark ? 'rgba(225,112,85,0.08)' : 'rgba(225,112,85,0.05)') : item.role === 'forward' ? (isDark ? 'rgba(116,185,255,0.08)' : 'rgba(116,185,255,0.05)') : panelBg);
     const chipStroke = isC ? '#f9ca24' : item.role === 'prereq' ? '#e17055' : item.role === 'forward' ? '#74b9ff' : borderColor;
     const chipTextColor = isC ? (isDark ? '#f9ca24' : '#b8860b') : item.role === 'prereq' ? (isDark ? '#e17055' : '#c0392b') : item.role === 'forward' ? (isDark ? '#74b9ff' : '#0984e3') : textColor;
+
+    // 불투명 배경 rect (연결선이 비쳐 보이지 않도록)
+    const bgRect = document.createElementNS(ns, 'rect');
+    bgRect.setAttribute('x', chipX); bgRect.setAttribute('y', chipY);
+    bgRect.setAttribute('width', COL_W); bgRect.setAttribute('height', CHIP_H);
+    bgRect.setAttribute('rx', '6');
+    bgRect.setAttribute('fill', panelBg);
+    bgRect.setAttribute('stroke', 'none');
+    chipBgLayer.appendChild(bgRect);
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('x', chipX); rect.setAttribute('y', chipY);
