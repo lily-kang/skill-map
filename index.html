@@ -32,111 +32,121 @@
   --shadow: rgba(0,0,0,0.12);
 }
 
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; background: var(--bg); color: var(--text); overflow: hidden; }
 
 .app { display: flex; height: 100vh; }
 
 /* Sidebar */
-.sidebar { width: 260px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
-.sidebar-header { padding: 20px 16px 14px; display: flex; justify-content: space-between; align-items: flex-start; }
-.sidebar-header h1 { font-size: 14px; font-weight: 700; color: var(--text-heading); }
-.sidebar-header p { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.sidebar { width: 300px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
+.sidebar-header { padding: 22px 18px 16px; display: flex; justify-content: space-between; align-items: flex-start; }
+.sidebar-header h1 { font-size: 15px; font-weight: 700; color: var(--text-heading); }
+.sidebar-header p { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
 
-.theme-btn { background: none; border: 1px solid var(--border-light); border-radius: 6px; padding: 4px 8px; font-size: 14px; cursor: pointer; color: var(--text-muted); line-height: 1; flex-shrink: 0; }
+.theme-btn { background: none; border: 1px solid var(--border-light); border-radius: 6px; padding: 5px 9px; font-size: 16px; cursor: pointer; color: var(--text-muted); line-height: 1; flex-shrink: 0; }
 .theme-btn:hover { border-color: var(--text-muted); }
 
-.section { padding: 10px 16px; border-top: 1px solid var(--border); }
-.section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 8px; }
+.section { padding: 12px 18px; border-top: 1px solid var(--border); }
+.section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 10px; }
 
-.grade-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
-.grade-btn { padding: 5px 9px; font-size: 11px; border: 1px solid var(--border-light); border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+.grade-buttons { display: flex; flex-wrap: wrap; gap: 5px; }
+.grade-btn { padding: 6px 11px; font-size: 12px; border: 1px solid var(--border-light); border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
 .grade-btn:hover { border-color: var(--text-dim); color: var(--text); }
 .grade-btn.active { background: #0984e3; color: #fff; border-color: #0984e3; }
 
-.domain-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 11px; cursor: pointer; color: var(--text-muted); user-select: none; }
+.domain-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; cursor: pointer; color: var(--text-muted); user-select: none; }
 .domain-item:hover { color: var(--text); }
-.domain-item input { margin: 0; accent-color: #0984e3; width: 13px; height: 13px; }
-.domain-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.domain-item input { margin: 0; accent-color: #0984e3; width: 14px; height: 14px; }
+.domain-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .domain-info { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .domain-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.domain-ratio { font-size: 9px; color: var(--text-dimmer); white-space: nowrap; flex-shrink: 0; }
-.domain-bar { width: 32px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; overflow: hidden; }
+.domain-ratio { font-size: 10px; color: var(--text-dimmer); white-space: nowrap; flex-shrink: 0; }
+.domain-bar { width: 36px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; overflow: hidden; }
 .domain-bar-fill { height: 100%; border-radius: 2px; }
 
-.toggle-row { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 4px 0; color: var(--text-muted); user-select: none; }
-.toggle-row input { margin: 0; accent-color: #0984e3; }
+.toggle-row { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 5px 0; color: var(--text-muted); user-select: none; }
+.toggle-row input { margin: 0; accent-color: #0984e3; width: 14px; height: 14px; }
 
-.stats { padding: 10px 16px; border-top: 1px solid var(--border); font-size: 10px; color: var(--text-dimmer); margin-top: auto; }
+.stats { padding: 12px 18px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-dimmer); margin-top: auto; }
 
 /* Canvas area */
 .main { flex: 1; position: relative; }
 svg { width: 100%; height: 100%; }
 
 /* Floating search */
-.float-bar { position: absolute; top: 14px; left: 14px; z-index: 10; display: flex; gap: 8px; }
-.search-input { width: 220px; padding: 8px 12px; font-size: 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-panel); color: var(--text); outline: none; }
+.float-bar { position: absolute; top: 16px; left: 16px; z-index: 10; display: flex; gap: 8px; }
+.search-input { width: 240px; padding: 9px 14px; font-size: 13px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-panel); color: var(--text); outline: none; }
 .search-input:focus { border-color: #0984e3; }
-.float-btn { padding: 7px 14px; font-size: 11px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-panel); color: var(--text-muted); cursor: pointer; }
+.float-btn { padding: 8px 16px; font-size: 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-panel); color: var(--text-muted); cursor: pointer; }
 .float-btn:hover { border-color: var(--text-dim); color: var(--text-heading); }
 
 /* Detail Panel */
-.detail-panel { position: absolute; top: 0; right: 0; bottom: 0; width: 480px; background: var(--bg-panel); border-left: 1px solid var(--border); overflow-y: auto; z-index: 20; transform: translateX(100%); transition: transform 0.3s ease; }
+.detail-panel { position: absolute; top: 0; right: 0; bottom: 0; width: 520px; background: var(--bg-panel); border-left: 1px solid var(--border); overflow-y: auto; z-index: 20; transform: translateX(100%); transition: transform 0.3s ease; }
 .detail-resize { position: absolute; top: 0; left: -4px; bottom: 0; width: 8px; cursor: col-resize; z-index: 21; }
 .detail-resize:hover, .detail-resize.active { background: rgba(9,132,227,0.4); }
 .detail-panel.open { transform: translateX(0); }
-.detail-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.detail-header h2 { font-size: 14px; font-weight: 600; color: var(--text-heading); line-height: 1.4; flex: 1; }
-.detail-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-dim); }
+.detail-header { padding: 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.detail-header h2 { font-size: 15px; font-weight: 600; color: var(--text-heading); line-height: 1.4; flex: 1; }
+.detail-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-dim); }
 .detail-close:hover { color: var(--text-heading); }
-.detail-body { padding: 16px; }
-.detail-field { margin-bottom: 14px; }
-.detail-field-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px; }
-.detail-field-value { font-size: 12px; line-height: 1.6; color: var(--text-muted); }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-right: 4px; }
+.detail-body { padding: 18px; }
+.detail-field { margin-bottom: 16px; }
+.detail-field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 5px; }
+.detail-field-value { font-size: 13px; line-height: 1.6; color: var(--text-muted); }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; }
 .badge-focus { background: rgba(253,203,110,0.15); color: #e0a800; }
 .badge-grade { background: rgba(9,132,227,0.15); color: #0969da; }
 [data-theme="dark"] .badge-focus, :root:not([data-theme="light"]) .badge-focus { color: #fdcb6e; }
 [data-theme="dark"] .badge-grade, :root:not([data-theme="light"]) .badge-grade { color: #74b9ff; }
-.prereq-item { padding: 5px 0; border-bottom: 1px solid var(--prereq-border); }
+.prereq-item { padding: 6px 0; border-bottom: 1px solid var(--prereq-border); }
 .prereq-item:last-child { border-bottom: none; }
-.prereq-link { color: var(--link); cursor: pointer; font-size: 12px; }
+.prereq-link { color: var(--link); cursor: pointer; font-size: 13px; }
 .prereq-link:hover { color: var(--link-hover); text-decoration: underline; }
-.prereq-text { font-size: 11px; color: var(--text-dim); }
+.prereq-text { font-size: 12px; color: var(--text-dim); }
 
 /* Same Standard section */
-.std-sibling { padding: 4px 8px; border-radius: 4px; font-size: 11px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.std-sibling { padding: 5px 9px; border-radius: 4px; font-size: 12px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .std-sibling:hover { background: var(--bg-hover); color: var(--text); }
 .std-sibling.current { background: rgba(9,132,227,0.12); color: var(--link); font-weight: 600; }
-.std-sibling .focus-dot { width: 6px; height: 6px; border-radius: 50; background: #fdcb6e; flex-shrink: 0; }
+.std-sibling .focus-dot { width: 7px; height: 7px; border-radius: 50%; background: #fdcb6e; flex-shrink: 0; }
+
+/* Chain depth */
+.depth-buttons { display: flex; gap: 4px; }
+.depth-btn { flex: 1; padding: 5px 0; font-size: 12px; border: 1px solid var(--border-light); border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+.depth-btn:hover { border-color: var(--text-dim); color: var(--text); }
+.depth-btn.active { background: #0984e3; color: #fff; border-color: #0984e3; }
+.depth-legend { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); padding: 2px 0; }
+.depth-dot { display: inline-block; width: 20px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+.depth-dot.prereq { background: #e17055; }
+.depth-dot.forward { background: #74b9ff; }
 
 /* View tabs */
-.view-tabs { position: absolute; top: 14px; right: 14px; z-index: 10; display: flex; gap: 0; background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden; }
-.view-tab { padding: 7px 16px; font-size: 11px; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+.view-tabs { position: absolute; top: 16px; right: 16px; z-index: 10; display: flex; gap: 0; background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden; }
+.view-tab { padding: 8px 18px; font-size: 12px; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
 .view-tab:hover { color: var(--text); }
 .view-tab.active { background: #0984e3; color: #fff; }
 
 /* List view */
-.list-view { display: none; position: absolute; inset: 0; overflow-y: auto; padding: 56px 24px 24px; background: var(--bg); }
+.list-view { display: none; position: absolute; inset: 0; overflow-y: auto; padding: 60px 28px 28px; background: var(--bg); }
 .list-view.active { display: block; }
-.list-grade-section { margin-bottom: 24px; }
-.list-grade-header { font-size: 13px; font-weight: 700; color: var(--text-heading); padding: 8px 0 6px; border-bottom: 2px solid var(--border); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
-.list-grade-header .count { font-size: 11px; font-weight: 400; color: var(--text-dim); }
-.list-grade-header .chevron { font-size: 10px; color: var(--text-dim); transition: transform 0.2s; }
+.list-grade-section { margin-bottom: 28px; }
+.list-grade-header { font-size: 14px; font-weight: 700; color: var(--text-heading); padding: 9px 0 7px; border-bottom: 2px solid var(--border); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.list-grade-header .count { font-size: 12px; font-weight: 400; color: var(--text-dim); }
+.list-grade-header .chevron { font-size: 11px; color: var(--text-dim); transition: transform 0.2s; }
 .list-grade-header.collapsed .chevron { transform: rotate(-90deg); }
-.list-std-group { margin: 4px 0 8px; }
-.list-std-header { font-size: 10px; font-weight: 600; color: var(--text-dim); padding: 4px 8px; background: var(--bg-hover); border-radius: 4px; margin-bottom: 2px; }
-.list-skill-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; color: var(--text); transition: background 0.15s; }
+.list-std-group { margin: 5px 0 10px; }
+.list-std-header { font-size: 11px; font-weight: 600; color: var(--text-dim); padding: 5px 10px; background: var(--bg-hover); border-radius: 4px; margin-bottom: 2px; }
+.list-skill-row { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; color: var(--text); transition: background 0.15s; }
 .list-skill-row:hover { background: var(--bg-hover); }
-.list-skill-row .focus-indicator { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.list-skill-row .skill-domain-tag { font-size: 9px; padding: 1px 6px; border-radius: 3px; color: #fff; flex-shrink: 0; opacity: 0.8; }
+.list-skill-row .focus-indicator { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.list-skill-row .skill-domain-tag { font-size: 10px; padding: 2px 7px; border-radius: 3px; color: #fff; flex-shrink: 0; opacity: 0.85; }
 .list-skill-row .skill-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.list-skill-row .skill-code { font-size: 10px; color: var(--text-dim); flex-shrink: 0; font-family: monospace; }
-.list-empty { text-align: center; color: var(--text-dim); padding: 40px; font-size: 13px; }
+.list-skill-row .skill-code { font-size: 11px; color: var(--text-dim); flex-shrink: 0; font-family: monospace; }
+.list-empty { text-align: center; color: var(--text-dim); padding: 48px; font-size: 14px; }
 
 /* Tooltip */
-.tooltip { position: absolute; background: var(--tooltip-bg); border: 1px solid var(--tooltip-border); border-radius: 8px; padding: 10px 14px; pointer-events: none; z-index: 100; display: none; box-shadow: 0 8px 24px var(--shadow); max-width: 260px; }
-.tooltip .tt-name { font-size: 12px; font-weight: 600; color: var(--text-heading); margin-bottom: 2px; }
-.tooltip .tt-meta { font-size: 10px; color: var(--text-muted); }
+.tooltip { position: absolute; background: var(--tooltip-bg); border: 1px solid var(--tooltip-border); border-radius: 8px; padding: 11px 15px; pointer-events: none; z-index: 100; display: none; box-shadow: 0 8px 24px var(--shadow); max-width: 280px; }
+.tooltip .tt-name { font-size: 13px; font-weight: 600; color: var(--text-heading); margin-bottom: 3px; }
+.tooltip .tt-meta { font-size: 11px; color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -161,6 +171,19 @@ svg { width: 100%; height: 100%; }
       <div class="toggle-row"><input type="checkbox" id="focusOnly"><label for="focusOnly">Focus Skills only</label></div>
       <div class="toggle-row"><input type="checkbox" id="showEdges" checked><label for="showEdges">Prerequisite links</label></div>
       <div class="toggle-row"><input type="checkbox" id="showLabels"><label for="showLabels">Show labels</label></div>
+    </div>
+    <div class="section" id="chainSection">
+      <div class="section-title">Skill Chain Depth</div>
+      <div class="depth-buttons">
+        <button class="depth-btn" data-depth="1">1</button>
+        <button class="depth-btn active" data-depth="2">2</button>
+        <button class="depth-btn" data-depth="3">3</button>
+        <button class="depth-btn" data-depth="99">All</button>
+      </div>
+      <div style="margin-top:8px;">
+        <div class="depth-legend"><span class="depth-dot prereq"></span> 선행 스킬</div>
+        <div class="depth-legend"><span class="depth-dot forward"></span> 후행 스킬</div>
+      </div>
     </div>
     <div class="stats" id="stats"></div>
   </div>
@@ -210,6 +233,7 @@ let activeGrades = new Set(), activeDomains = new Set();
 let simulation, svg, g, linkG, nodeG, labelG, gradeG;
 let width, height;
 let currentHighlight = null;
+let chainDepth = 2;
 
 function buildPrereqEdges(skills) {
   const descMap = new Map();
@@ -454,7 +478,12 @@ function onNodeHover(event, d) {
   tt.querySelector('.tt-name').textContent = d.skill_name;
   tt.querySelector('.tt-meta').textContent = `Grade ${d.grade} · ${d.domain}${d.is_focus_skill ? ' · ⚡ Focus' : ''}`;
   tt.style.display = 'block';
-  d3.select(this).attr('fill-opacity', 1).attr('r', d.r + 2);
+  // 하이라이트 중이면 크기만 키우고 opacity는 건드리지 않음
+  if (currentHighlight) {
+    d3.select(this).attr('r', d.r + 2);
+  } else {
+    d3.select(this).attr('fill-opacity', 1).attr('r', d.r + 2);
+  }
 }
 function onNodeMove(event) {
   const tt = document.getElementById('tooltip');
@@ -463,7 +492,12 @@ function onNodeMove(event) {
 }
 function onNodeOut(event, d) {
   document.getElementById('tooltip').style.display = 'none';
-  d3.select(this).attr('fill-opacity', 0.8).attr('r', d.r);
+  // 하이라이트 중이면 opacity는 건드리지 않고 크기만 복원
+  if (currentHighlight) {
+    d3.select(this).attr('r', d.r);
+  } else {
+    d3.select(this).attr('fill-opacity', 0.8).attr('r', d.r);
+  }
 }
 function onNodeClick(event, d) {
   event.stopPropagation();
@@ -472,34 +506,41 @@ function onNodeClick(event, d) {
 }
 
 function highlightChain(clickedNode) {
-  // Find all connected through prereqs (backward + forward)
+  // backward: 선행 스킬 (이 스킬이 target인 링크의 source)
+  // forward:  후행 스킬 (이 스킬이 source인 링크의 target)
   const backward = new Set([clickedNode.id]);
-  const forward = new Set([clickedNode.id]);
+  const forward  = new Set([clickedNode.id]);
 
   const linkData = linkG.selectAll('line').data();
 
-  let queue = [clickedNode.id];
+  // BFS with depth limit
+  let queue = [{ id: clickedNode.id, depth: 0 }];
   while (queue.length) {
-    const cur = queue.shift();
+    const { id: cur, depth } = queue.shift();
+    if (depth >= chainDepth) continue;
     linkData.forEach(l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      if (tid === cur && !backward.has(sid)) { backward.add(sid); queue.push(sid); }
+      if (tid === cur && !backward.has(sid)) { backward.add(sid); queue.push({ id: sid, depth: depth + 1 }); }
     });
   }
-  queue = [clickedNode.id];
+  queue = [{ id: clickedNode.id, depth: 0 }];
   while (queue.length) {
-    const cur = queue.shift();
+    const { id: cur, depth } = queue.shift();
+    if (depth >= chainDepth) continue;
     linkData.forEach(l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      if (sid === cur && !forward.has(tid)) { forward.add(tid); queue.push(tid); }
+      if (sid === cur && !forward.has(tid)) { forward.add(tid); queue.push({ id: tid, depth: depth + 1 }); }
     });
   }
 
   const related = new Set([...backward, ...forward]);
 
-  // Dim non-related
+  // 선행 방향: 주황(#e17055), 후행 방향: 파랑(#74b9ff)
+  const PREREQ_COLOR  = '#e17055'; // 선행 (→ 클릭 노드)
+  const FORWARD_COLOR = '#74b9ff'; // 후행 (클릭 노드 →)
+
   nodeG.selectAll('circle')
     .attr('fill-opacity', d => related.has(d.id) ? 1 : 0.06)
     .attr('stroke-opacity', d => related.has(d.id) ? 1 : 0.06);
@@ -510,23 +551,23 @@ function highlightChain(clickedNode) {
     .attr('stroke', l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      return (related.has(sid) && related.has(tid)) ? '#e17055' : '#333';
+      if (!related.has(sid) || !related.has(tid)) return getComputedStyle(document.documentElement).getPropertyValue('--edge-color').trim();
+      // target이 클릭 노드 방향이면 선행, source가 클릭 노드면 후행
+      if (backward.has(sid) && backward.has(tid)) return PREREQ_COLOR;
+      if (forward.has(sid) && forward.has(tid)) return FORWARD_COLOR;
+      return PREREQ_COLOR;
     })
     .attr('stroke-opacity', l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      return (related.has(sid) && related.has(tid)) ? 0.8 : 0.03;
+      return (related.has(sid) && related.has(tid)) ? 0.85 : 0.03;
     })
     .attr('stroke-width', l => {
       const sid = typeof l.source === 'object' ? l.source.id : l.source;
       const tid = typeof l.target === 'object' ? l.target.id : l.target;
-      return (related.has(sid) && related.has(tid)) ? 1.5 : 0.5;
+      return (related.has(sid) && related.has(tid)) ? 2 : 0.5;
     });
-  gradeG.selectAll('g').attr('opacity', d => {
-    // Show grade hubs that are related
-    const gid = 'grade_' + d.grade;
-    return 0.3;
-  });
+  gradeG.selectAll('g').attr('opacity', 0.3);
 
   currentHighlight = clickedNode;
 }
@@ -659,6 +700,19 @@ function initUI() {
   document.getElementById('focusOnly').onchange = renderAll;
   document.getElementById('showEdges').onchange = renderAll;
   document.getElementById('showLabels').onchange = renderAll;
+
+  // Chain depth buttons
+  document.querySelectorAll('.depth-btn').forEach(btn => {
+    btn.onclick = () => {
+      chainDepth = parseInt(btn.dataset.depth);
+      document.querySelectorAll('.depth-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (currentHighlight) highlightChain(currentHighlight);
+    };
+  });
+
+  // Chain section: graph 뷰에서만 표시 (초기값 visible)
+  document.getElementById('chainSection').style.display = '';
   document.getElementById('detailClose').onclick = () => { document.getElementById('detailPanel').classList.remove('open'); clearHighlight(); };
   document.getElementById('resetBtn').onclick = () => {
     activeGrades.clear(); activeDomains.clear();
@@ -697,9 +751,10 @@ function initUI() {
         listEl.classList.add('active');
         renderList();
       }
-      // Show/hide graph-only toggles
-      document.getElementById('showEdges').closest('.toggle-row').style.display = currentView === 'graph' ? '' : 'none';
-      document.getElementById('showLabels').closest('.toggle-row').style.display = currentView === 'graph' ? '' : 'none';
+      const graphOnly = currentView === 'graph';
+      document.getElementById('showEdges').closest('.toggle-row').style.display = graphOnly ? '' : 'none';
+      document.getElementById('showLabels').closest('.toggle-row').style.display = graphOnly ? '' : 'none';
+      document.getElementById('chainSection').style.display = graphOnly ? '' : 'none';
     };
   });
 }
