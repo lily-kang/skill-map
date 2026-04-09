@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learning Progression — Skill Map</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* CSS custom properties for theming */
+:root {
+  --bg: #0f1117; --bg-panel: #181a20; --bg-hover: #22252b;
+  --border: #2a2d35; --border-light: #333;
+  --text: #e0e0e0; --text-heading: #fff; --text-muted: #888; --text-dim: #555; --text-dimmer: #444;
+  --link: #74b9ff; --link-hover: #a3d8ff;
+  --node-label: #666; --grade-hub-fill: #1e2028; --grade-hub-stroke: #444; --grade-hub-text: #888;
+  --prereq-border: #222;
+  --tooltip-bg: #22252b; --tooltip-border: #444;
+  --edge-color: #333;
+  --shadow: rgba(0,0,0,0.5);
+}
+[data-theme="light"] {
+  --bg: #f5f6f8; --bg-panel: #ffffff; --bg-hover: #f0f0f0;
+  --border: #ddd; --border-light: #ccc;
+  --text: #333; --text-heading: #111; --text-muted: #666; --text-dim: #999; --text-dimmer: #aaa;
+  --link: #0969da; --link-hover: #0550ae;
+  --node-label: #555; --grade-hub-fill: #eef1f5; --grade-hub-stroke: #bbb; --grade-hub-text: #555;
+  --prereq-border: #e0e0e0;
+  --tooltip-bg: #fff; --tooltip-border: #ccc;
+  --edge-color: #ccc;
+  --shadow: rgba(0,0,0,0.12);
+}
+
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+
+.app { display: flex; height: 100vh; }
+
+/* Sidebar */
+.sidebar { width: 260px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
+.sidebar-header { padding: 20px 16px 14px; display: flex; justify-content: space-between; align-items: flex-start; }
+.sidebar-header h1 { font-size: 14px; font-weight: 700; color: var(--text-heading); }
+.sidebar-header p { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+.theme-btn { background: none; border: 1px solid var(--border-light); border-radius: 6px; padding: 4px 8px; font-size: 14px; cursor: pointer; color: var(--text-muted); line-height: 1; flex-shrink: 0; }
+.theme-btn:hover { border-color: var(--text-muted); }
+
+.section { padding: 10px 16px; border-top: 1px solid var(--border); }
+.section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 8px; }
+
+.grade-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
+.grade-btn { padding: 5px 9px; font-size: 11px; border: 1px solid var(--border-light); border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+.grade-btn:hover { border-color: var(--text-dim); color: var(--text); }
+.grade-btn.active { background: #0984e3; color: #fff; border-color: #0984e3; }
+
+.domain-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 11px; cursor: pointer; color: var(--text-muted); user-select: none; }
+.domain-item:hover { color: var(--text); }
+.domain-item input { margin: 0; accent-color: #0984e3; width: 13px; height: 13px; }
+.domain-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.domain-info { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.domain-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.domain-ratio { font-size: 9px; color: var(--text-dimmer); white-space: nowrap; flex-shrink: 0; }
+.domain-bar { width: 32px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; overflow: hidden; }
+.domain-bar-fill { height: 100%; border-radius: 2px; }
+
+.toggle-row { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 4px 0; color: var(--text-muted); user-select: none; }
+.toggle-row input { margin: 0; accent-color: #0984e3; }
+
+.stats { padding: 10px 16px; border-top: 1px solid var(--border); font-size: 10px; color: var(--text-dimmer); margin-top: auto; }
+
+/* Canvas area */
+.main { flex: 1; position: relative; }
+svg { width: 100%; height: 100%; }
+
+/* Floating search */
+.float-bar { position: absolute; top: 14px; left: 14px; z-index: 10; display: flex; gap: 8px; }
+.search-input { width: 220px; padding: 8px 12px; font-size: 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-panel); color: var(--text); outline: none; }
+.search-input:focus { border-color: #0984e3; }
+.float-btn { padding: 7px 14px; font-size: 11px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-panel); color: var(--text-muted); cursor: pointer; }
+.float-btn:hover { border-color: var(--text-dim); color: var(--text-heading); }
+
+/* Detail Panel */
+.detail-panel { position: absolute; top: 0; right: 0; bottom: 0; width: 480px; background: var(--bg-panel); border-left: 1px solid var(--border); overflow-y: auto; z-index: 20; transform: translateX(100%); transition: transform 0.3s ease; }
+.detail-resize { position: absolute; top: 0; left: -4px; bottom: 0; width: 8px; cursor: col-resize; z-index: 21; }
+.detail-resize:hover, .detail-resize.active { background: rgba(9,132,227,0.4); }
+.detail-panel.open { transform: translateX(0); }
+.detail-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.detail-header h2 { font-size: 14px; font-weight: 600; color: var(--text-heading); line-height: 1.4; flex: 1; }
+.detail-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-dim); }
+.detail-close:hover { color: var(--text-heading); }
+.detail-body { padding: 16px; }
+.detail-field { margin-bottom: 14px; }
+.detail-field-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px; }
+.detail-field-value { font-size: 12px; line-height: 1.6; color: var(--text-muted); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-right: 4px; }
+.badge-focus { background: rgba(253,203,110,0.15); color: #e0a800; }
+.badge-grade { background: rgba(9,132,227,0.15); color: #0969da; }
+[data-theme="dark"] .badge-focus, :root:not([data-theme="light"]) .badge-focus { color: #fdcb6e; }
+[data-theme="dark"] .badge-grade, :root:not([data-theme="light"]) .badge-grade { color: #74b9ff; }
+.prereq-item { padding: 5px 0; border-bottom: 1px solid var(--prereq-border); }
+.prereq-item:last-child { border-bottom: none; }
+.prereq-link { color: var(--link); cursor: pointer; font-size: 12px; }
+.prereq-link:hover { color: var(--link-hover); text-decoration: underline; }
+.prereq-text { font-size: 11px; color: var(--text-dim); }
+
+/* Same Standard section */
+.std-sibling { padding: 4px 8px; border-radius: 4px; font-size: 11px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.std-sibling:hover { background: var(--bg-hover); color: var(--text); }
+.std-sibling.current { background: rgba(9,132,227,0.12); color: var(--link); font-weight: 600; }
+.std-sibling .focus-dot { width: 6px; height: 6px; border-radius: 50; background: #fdcb6e; flex-shrink: 0; }
+
+/* View tabs */
+.view-tabs { position: absolute; top: 14px; right: 14px; z-index: 10; display: flex; gap: 0; background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: 8px; overflow: hidden; }
+.view-tab { padding: 7px 16px; font-size: 11px; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+.view-tab:hover { color: var(--text); }
+.view-tab.active { background: #0984e3; color: #fff; }
+
+/* List view */
+.list-view { display: none; position: absolute; inset: 0; overflow-y: auto; padding: 56px 24px 24px; background: var(--bg); }
+.list-view.active { display: block; }
+.list-grade-section { margin-bottom: 24px; }
+.list-grade-header { font-size: 13px; font-weight: 700; color: var(--text-heading); padding: 8px 0 6px; border-bottom: 2px solid var(--border); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.list-grade-header .count { font-size: 11px; font-weight: 400; color: var(--text-dim); }
+.list-grade-header .chevron { font-size: 10px; color: var(--text-dim); transition: transform 0.2s; }
+.list-grade-header.collapsed .chevron { transform: rotate(-90deg); }
+.list-std-group { margin: 4px 0 8px; }
+.list-std-header { font-size: 10px; font-weight: 600; color: var(--text-dim); padding: 4px 8px; background: var(--bg-hover); border-radius: 4px; margin-bottom: 2px; }
+.list-skill-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; color: var(--text); transition: background 0.15s; }
+.list-skill-row:hover { background: var(--bg-hover); }
+.list-skill-row .focus-indicator { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.list-skill-row .skill-domain-tag { font-size: 9px; padding: 1px 6px; border-radius: 3px; color: #fff; flex-shrink: 0; opacity: 0.8; }
+.list-skill-row .skill-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-skill-row .skill-code { font-size: 10px; color: var(--text-dim); flex-shrink: 0; font-family: monospace; }
+.list-empty { text-align: center; color: var(--text-dim); padding: 40px; font-size: 13px; }
+
+/* Tooltip */
+.tooltip { position: absolute; background: var(--tooltip-bg); border: 1px solid var(--tooltip-border); border-radius: 8px; padding: 10px 14px; pointer-events: none; z-index: 100; display: none; box-shadow: 0 8px 24px var(--shadow); max-width: 260px; }
+.tooltip .tt-name { font-size: 12px; font-weight: 600; color: var(--text-heading); margin-bottom: 2px; }
+.tooltip .tt-meta { font-size: 10px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div>
+        <h1>Learning Progression</h1>
+        <p>Star Reading Skill Map</p>
+      </div>
+      <button class="theme-btn" id="themeBtn" title="Toggle light/dark mode">&#9790;</button>
+    </div>
+    <div class="section">
+      <div class="section-title">Grade</div>
+      <div class="grade-buttons" id="gradeButtons"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Domain</div>
+      <div id="domainList"></div>
+    </div>
+    <div class="section">
+      <div class="toggle-row"><input type="checkbox" id="focusOnly"><label for="focusOnly">Focus Skills only</label></div>
+      <div class="toggle-row"><input type="checkbox" id="showEdges" checked><label for="showEdges">Prerequisite links</label></div>
+      <div class="toggle-row"><input type="checkbox" id="showLabels"><label for="showLabels">Show labels</label></div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="main">
+    <div class="float-bar">
+      <input class="search-input" type="text" id="search" placeholder="Search skills...">
+      <button class="float-btn" id="resetBtn">Reset</button>
+    </div>
+    <div class="view-tabs">
+      <button class="view-tab active" data-view="graph">Graph</button>
+      <button class="view-tab" data-view="list">List</button>
+    </div>
+    <svg id="graph"></svg>
+    <div class="list-view" id="listView"></div>
+    <div class="tooltip" id="tooltip">
+      <div class="tt-name"></div>
+      <div class="tt-meta"></div>
+    </div>
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-resize" id="detailResize"></div>
+      <div class="detail-header">
+        <h2 id="detailTitle"></h2>
+        <button class="detail-close" id="detailClose">&times;</button>
+      </div>
+      <div class="detail-body" id="detailBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DOMAIN_COLORS = {
+  'Foundations for Reading': '#e17055',
+  'Vocabulary Development': '#00b894',
+  'Comprehension of Elements and Ideas': '#0984e3',
+  'Comprehension of Information and Ideas': '#a29bfe',
+  'Organization, Purpose, and Language Use': '#fdcb6e',
+  "Structure, Genre, and Author's Craft": '#e84393',
+  'Analysis, Evaluation, and Extending Meaning': '#00cec9',
+  'Extending Meaning and Deepening Understanding': '#6c5ce7',
+  'Other Subject Areas': '#636e72',
+};
+const GRADE_ORDER = ['Pre-K','K','1','2','3','4','5','6','7','8','9','10','11','12'];
+
+let allSkills = [], prereqMap = [];
+let activeGrades = new Set(), activeDomains = new Set();
+let simulation, svg, g, linkG, nodeG, labelG, gradeG;
+let width, height;
+let currentHighlight = null;
+
+function buildPrereqEdges(skills) {
+  const descMap = new Map();
+  skills.forEach((s, i) => {
+    const key = s.grade + '|||' + s.full_description.trim().toLowerCase();
+    if (!descMap.has(key)) descMap.set(key, []);
+    descMap.get(key).push(i);
+  });
+  const edges = [];
+  skills.forEach((s, i) => {
+    (s.prerequisite_skills || []).forEach(p => {
+      const key = p.grade + '|||' + p.description.trim().toLowerCase();
+      const targets = descMap.get(key);
+      if (targets) targets.forEach(ti => edges.push({ sourceIdx: ti, targetIdx: i }));
+    });
+  });
+  return edges;
+}
+
+function getFilteredData() {
+  const focusOnly = document.getElementById('focusOnly').checked;
+  const search = document.getElementById('search').value.toLowerCase();
+
+  const nodes = [];
+  const indexMap = new Map();
+
+  allSkills.forEach((s, i) => {
+    if (activeGrades.size > 0 && !activeGrades.has(s.grade)) return;
+    if (activeDomains.size > 0 && !activeDomains.has(s.domain)) return;
+    if (focusOnly && !s.is_focus_skill) return;
+    if (search && !s.skill_name.toLowerCase().includes(search) &&
+        !s.skill_code.toLowerCase().includes(search) &&
+        !s.full_description.toLowerCase().includes(search)) return;
+    indexMap.set(i, nodes.length);
+    nodes.push({ ...s, origIdx: i, id: 'n' + i });
+  });
+
+  // Count connections
+  const connCount = new Map();
+  const links = [];
+  prereqMap.forEach(e => {
+    if (indexMap.has(e.sourceIdx) && indexMap.has(e.targetIdx)) {
+      links.push({ source: 'n' + e.sourceIdx, target: 'n' + e.targetIdx });
+      connCount.set(e.sourceIdx, (connCount.get(e.sourceIdx) || 0) + 1);
+      connCount.set(e.targetIdx, (connCount.get(e.targetIdx) || 0) + 1);
+    }
+  });
+
+  nodes.forEach(n => {
+    n.conns = connCount.get(n.origIdx) || 0;
+    n.r = Math.max(4, Math.min(18, 4 + n.conns * 1.5));
+    n.color = DOMAIN_COLORS[n.domain] || '#636e72';
+  });
+
+  // Grade hub nodes — sorted by grade order
+  const gradesInView = [...new Set(nodes.map(n => n.grade))]
+    .sort((a, b) => GRADE_ORDER.indexOf(a) - GRADE_ORDER.indexOf(b));
+  const gradeNodes = gradesInView.map(g => {
+    const skillCount = nodes.filter(n => n.grade === g).length;
+    return {
+      id: 'grade_' + g,
+      isGradeHub: true,
+      grade: g,
+      gradeNum: GRADE_ORDER.indexOf(g),
+      r: Math.max(22, Math.min(36, 22 + skillCount * 0.18)),
+      label: g,
+    };
+  });
+
+  return { nodes, links, gradeNodes };
+}
+
+function renderAll() {
+  const listEl = document.getElementById('listView');
+  if (listEl && listEl.classList.contains('active')) {
+    renderList();
+  }
+  render();
+}
+
+function render() {
+  const showEdges = document.getElementById('showEdges').checked;
+  const showLabels = document.getElementById('showLabels').checked;
+  const data = getFilteredData();
+
+  // Stats
+  const focusCount = data.nodes.filter(n => n.is_focus_skill).length;
+  document.getElementById('stats').textContent =
+    `${data.nodes.length} skills (${focusCount} focus) · ${data.links.length} links`;
+
+  // Clear
+  g.selectAll('*').remove();
+  linkG = g.append('g').attr('class', 'links');
+  gradeG = g.append('g').attr('class', 'grade-hubs');
+  nodeG = g.append('g').attr('class', 'nodes');
+  labelG = g.append('g').attr('class', 'labels');
+
+  // Root node (center)
+  const rootNode = { id: 'root', isRoot: true, r: 0, label: '', x: width / 2, y: height / 2, fx: width / 2, fy: height / 2 };
+
+  const allNodes = [rootNode, ...data.gradeNodes, ...data.nodes];
+  const nodeById = new Map(allNodes.map(n => [n.id, n]));
+
+  // Prereq links
+  const linkData = showEdges ? data.links
+    .filter(l => nodeById.has(l.source) && nodeById.has(l.target))
+    .map(l => ({ source: l.source, target: l.target, type: 'prereq' })) : [];
+
+  // Grade hub → root links
+  const rootLinks = data.gradeNodes.map(gn => ({
+    source: 'root', target: gn.id, type: 'root'
+  }));
+
+  // Skill → grade hub links
+  const gradeLinks = data.nodes.map(n => ({
+    source: n.id, target: 'grade_' + n.grade, type: 'grade'
+  }));
+
+  const allLinks = [...rootLinks, ...gradeLinks, ...linkData];
+
+  const cs = getComputedStyle(document.documentElement);
+  const edgeColor = cs.getPropertyValue('--edge-color').trim();
+  const hubFill = cs.getPropertyValue('--grade-hub-fill').trim();
+  const hubStroke = cs.getPropertyValue('--grade-hub-stroke').trim();
+  const hubText = cs.getPropertyValue('--grade-hub-text').trim();
+  const lblColor = cs.getPropertyValue('--node-label').trim();
+
+  const linkEls = linkG.selectAll('line').data(linkData)
+    .join('line')
+    .attr('stroke', edgeColor)
+    .attr('stroke-width', 0.5)
+    .attr('stroke-opacity', 0.4);
+
+  // Grade hubs
+  const gradeEls = gradeG.selectAll('g').data(data.gradeNodes)
+    .join('g')
+    .attr('class', 'grade-hub');
+
+  gradeEls.append('circle')
+    .attr('r', d => d.r)
+    .attr('fill', hubFill)
+    .attr('stroke', hubStroke)
+    .attr('stroke-width', 1.5);
+
+  gradeEls.append('text')
+    .text(d => d.label)
+    .attr('text-anchor', 'middle')
+    .attr('dy', '0.35em')
+    .attr('fill', hubText)
+    .attr('font-size', 11)
+    .attr('font-weight', 700);
+
+  // Skill nodes
+  const nodeEls = nodeG.selectAll('circle').data(data.nodes)
+    .join('circle')
+    .attr('r', d => d.r)
+    .attr('fill', d => d.color)
+    .attr('fill-opacity', 0.8)
+    .attr('stroke', d => d.is_focus_skill ? '#fdcb6e' : 'none')
+    .attr('stroke-width', d => d.is_focus_skill ? 1.5 : 0)
+    .attr('cursor', 'pointer')
+    .on('mouseover', onNodeHover)
+    .on('mousemove', onNodeMove)
+    .on('mouseout', onNodeOut)
+    .on('click', onNodeClick)
+    .call(d3.drag()
+      .on('start', dragStart)
+      .on('drag', dragging)
+      .on('end', dragEnd));
+
+  // Labels
+  const labelEls = labelG.selectAll('text').data(data.nodes)
+    .join('text')
+    .text(d => d.skill_name.length > 25 ? d.skill_name.substring(0, 23) + '…' : d.skill_name)
+    .attr('font-size', 7)
+    .attr('fill', lblColor)
+    .attr('text-anchor', 'middle')
+    .attr('dy', d => d.r + 10)
+    .attr('pointer-events', 'none')
+    .attr('display', showLabels ? 'block' : 'none');
+
+  // Set initial positions: grade hubs fan out from center, skills near their hub
+  const numGrades = data.gradeNodes.length;
+  const hubRadius = Math.min(width, height) * (numGrades <= 2 ? 0.12 : 0.28);
+  data.gradeNodes.forEach((gn, i) => {
+    const angle = (2 * Math.PI * i / numGrades) - Math.PI / 2;
+    gn.x = width / 2 + hubRadius * Math.cos(angle);
+    gn.y = height / 2 + hubRadius * Math.sin(angle);
+    delete gn.fx; delete gn.fy; // let them float freely
+  });
+
+  data.nodes.forEach(n => {
+    const hub = data.gradeNodes.find(gn => gn.grade === n.grade);
+    if (hub) {
+      const angle = Math.random() * 2 * Math.PI;
+      const dist = hub.r + 10 + Math.random() * 50;
+      n.x = hub.x + Math.cos(angle) * dist;
+      n.y = hub.y + Math.sin(angle) * dist;
+    } else {
+      n.x = width / 2 + (Math.random() - 0.5) * 200;
+      n.y = height / 2 + (Math.random() - 0.5) * 200;
+    }
+  });
+
+  if (simulation) simulation.stop();
+
+  simulation = d3.forceSimulation(allNodes)
+    .force('link', d3.forceLink(allLinks).id(d => d.id)
+      .distance(d => {
+        if (d.type === 'root') return hubRadius;
+        if (d.type === 'grade') return 55;
+        return 100; // prereq links
+      })
+      .strength(d => {
+        if (d.type === 'root') return 0.8;
+        if (d.type === 'grade') return 0.5;
+        return 0.05;
+      }))
+    .force('charge', d3.forceManyBody().strength(d => {
+      if (d.isRoot) return 0;
+      if (d.isGradeHub) return -500;
+      return -20;
+    }))
+    .force('collision', d3.forceCollide().radius(d => d.r + 3))
+    .alphaDecay(0.007)
+    .velocityDecay(0.4)
+    .on('tick', () => {
+      linkEls
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
+
+      gradeEls.attr('transform', d => `translate(${d.x},${d.y})`);
+      nodeEls.attr('cx', d => d.x).attr('cy', d => d.y);
+      labelEls.attr('x', d => d.x).attr('y', d => d.y);
+    });
+}
+
+function onNodeHover(event, d) {
+  const tt = document.getElementById('tooltip');
+  tt.querySelector('.tt-name').textContent = d.skill_name;
+  tt.querySelector('.tt-meta').textContent = `Grade ${d.grade} · ${d.domain}${d.is_focus_skill ? ' · ⚡ Focus' : ''}`;
+  tt.style.display = 'block';
+  d3.select(this).attr('fill-opacity', 1).attr('r', d.r + 2);
+}
+function onNodeMove(event) {
+  const tt = document.getElementById('tooltip');
+  tt.style.left = (event.clientX + 16) + 'px';
+  tt.style.top = (event.clientY - 10) + 'px';
+}
+function onNodeOut(event, d) {
+  document.getElementById('tooltip').style.display = 'none';
+  d3.select(this).attr('fill-opacity', 0.8).attr('r', d.r);
+}
+function onNodeClick(event, d) {
+  event.stopPropagation();
+  showDetail(d.origIdx);
+  highlightChain(d);
+}
+
+function highlightChain(clickedNode) {
+  // Find all connected through prereqs (backward + forward)
+  const backward = new Set([clickedNode.id]);
+  const forward = new Set([clickedNode.id]);
+
+  const linkData = linkG.selectAll('line').data();
+
+  let queue = [clickedNode.id];
+  while (queue.length) {
+    const cur = queue.shift();
+    linkData.forEach(l => {
+      const sid = typeof l.source === 'object' ? l.source.id : l.source;
+      const tid = typeof l.target === 'object' ? l.target.id : l.target;
+      if (tid === cur && !backward.has(sid)) { backward.add(sid); queue.push(sid); }
+    });
+  }
+  queue = [clickedNode.id];
+  while (queue.length) {
+    const cur = queue.shift();
+    linkData.forEach(l => {
+      const sid = typeof l.source === 'object' ? l.source.id : l.source;
+      const tid = typeof l.target === 'object' ? l.target.id : l.target;
+      if (sid === cur && !forward.has(tid)) { forward.add(tid); queue.push(tid); }
+    });
+  }
+
+  const related = new Set([...backward, ...forward]);
+
+  // Dim non-related
+  nodeG.selectAll('circle')
+    .attr('fill-opacity', d => related.has(d.id) ? 1 : 0.06)
+    .attr('stroke-opacity', d => related.has(d.id) ? 1 : 0.06);
+  labelG.selectAll('text')
+    .attr('fill-opacity', d => related.has(d.id) ? 1 : 0.06)
+    .attr('display', d => related.has(d.id) ? 'block' : 'none');
+  linkG.selectAll('line')
+    .attr('stroke', l => {
+      const sid = typeof l.source === 'object' ? l.source.id : l.source;
+      const tid = typeof l.target === 'object' ? l.target.id : l.target;
+      return (related.has(sid) && related.has(tid)) ? '#e17055' : '#333';
+    })
+    .attr('stroke-opacity', l => {
+      const sid = typeof l.source === 'object' ? l.source.id : l.source;
+      const tid = typeof l.target === 'object' ? l.target.id : l.target;
+      return (related.has(sid) && related.has(tid)) ? 0.8 : 0.03;
+    })
+    .attr('stroke-width', l => {
+      const sid = typeof l.source === 'object' ? l.source.id : l.source;
+      const tid = typeof l.target === 'object' ? l.target.id : l.target;
+      return (related.has(sid) && related.has(tid)) ? 1.5 : 0.5;
+    });
+  gradeG.selectAll('g').attr('opacity', d => {
+    // Show grade hubs that are related
+    const gid = 'grade_' + d.grade;
+    return 0.3;
+  });
+
+  currentHighlight = clickedNode;
+}
+
+function clearHighlight() {
+  if (!currentHighlight) return;
+  const showLabels = document.getElementById('showLabels').checked;
+  const ec = getComputedStyle(document.documentElement).getPropertyValue('--edge-color').trim();
+  nodeG.selectAll('circle').attr('fill-opacity', 0.8).attr('stroke-opacity', 1);
+  labelG.selectAll('text').attr('fill-opacity', 1).attr('display', showLabels ? 'block' : 'none');
+  linkG.selectAll('line').attr('stroke', ec).attr('stroke-opacity', 0.4).attr('stroke-width', 0.5);
+  gradeG.selectAll('g').attr('opacity', 1);
+  currentHighlight = null;
+}
+
+function dragStart(event, d) {
+  if (!event.active) simulation.alphaTarget(0.1).restart();
+  d.fx = d.x; d.fy = d.y;
+}
+function dragging(event, d) {
+  d.fx = event.x; d.fy = event.y;
+}
+function dragEnd(event, d) {
+  if (!event.active) simulation.alphaTarget(0.005);
+  if (!d.isGradeHub) { d.fx = null; d.fy = null; }
+}
+
+function showDetail(idx) {
+  const s = allSkills[idx];
+  document.getElementById('detailTitle').textContent = s.skill_name;
+  let html = '<div style="margin-bottom:14px;">';
+  html += `<span class="badge badge-grade">Grade ${s.grade}</span>`;
+  if (s.is_focus_skill) html += '<span class="badge badge-focus">Focus Skill</span>';
+  html += '</div>';
+
+  [['Skill Code', s.skill_code], ['Full Description', s.full_description],
+   ['Skill Area', s.skill_area], ['Domain', s.domain], ['Standard', s.standard]]
+    .forEach(([l,v]) => { if (v) html += `<div class="detail-field"><div class="detail-field-label">${l}</div><div class="detail-field-value">${v}</div></div>`; });
+
+  if (s.prerequisite_skills?.length) {
+    html += '<div class="detail-field"><div class="detail-field-label">Prerequisite Skills</div><div class="detail-field-value">';
+    s.prerequisite_skills.forEach(p => {
+      const mi = allSkills.findIndex(sk => sk.grade === p.grade && sk.full_description.trim().toLowerCase() === p.description.trim().toLowerCase());
+      html += '<div class="prereq-item">';
+      html += `<span class="badge badge-grade" style="font-size:9px;">Grade ${p.grade}</span> `;
+      html += mi >= 0 ? `<a class="prereq-link" data-idx="${mi}">${allSkills[mi].skill_name}</a>` : `<span class="prereq-text">${p.description}</span>`;
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  if (s.is_focus_skill) {
+    [['ELL Support', s.ell_support], ['Content-Area Vocabulary', s.content_area_vocabulary?.join(', ')],
+     ['Conceptual Knowledge', s.conceptual_knowledge], ['Linguistic Competencies', s.linguistic_competencies]]
+      .forEach(([l,v]) => { if (v) html += `<div class="detail-field"><div class="detail-field-label">${l}</div><div class="detail-field-value">${v}</div></div>`; });
+  }
+
+  // Same Standard siblings
+  const siblings = allSkills
+    .map((sk, i) => ({ sk, i }))
+    .filter(({ sk }) => sk.skill_code === s.skill_code && sk.grade === s.grade);
+  if (siblings.length > 1) {
+    const stdLabel = s.standard || s.skill_code;
+    html += `<div class="detail-field"><div class="detail-field-label">Same Standard (${stdLabel})</div><div class="detail-field-value">`;
+    siblings.forEach(({ sk, i }) => {
+      const isCurrent = i === idx;
+      const focusDot = sk.is_focus_skill ? '<span class="focus-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#fdcb6e;"></span>' : '';
+      html += `<div class="std-sibling${isCurrent ? ' current' : ''}" data-idx="${i}">${focusDot}<span>${sk.skill_name}</span></div>`;
+    });
+    html += '</div></div>';
+  }
+
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('detailPanel').classList.add('open');
+
+  document.querySelectorAll('.prereq-link').forEach(el => {
+    el.onclick = () => {
+      const i = parseInt(el.dataset.idx);
+      showDetail(i);
+      const node = nodeG.selectAll('circle').data().find(n => n.origIdx === i);
+      if (node) highlightChain(node);
+    };
+  });
+  document.querySelectorAll('.std-sibling:not(.current)').forEach(el => {
+    el.onclick = () => {
+      const i = parseInt(el.dataset.idx);
+      showDetail(i);
+      const node = nodeG.selectAll('circle').data().find(n => n.origIdx === i);
+      if (node) highlightChain(node);
+    };
+  });
+}
+
+function initUI() {
+  const domains = [...new Set(allSkills.map(s => s.domain))].sort();
+  const gc = document.getElementById('gradeButtons');
+  GRADE_ORDER.forEach(gr => {
+    const count = allSkills.filter(s => s.grade === gr).length;
+    if (!count) return;
+    const btn = document.createElement('button');
+    btn.className = 'grade-btn';
+    btn.textContent = gr;
+    btn.title = `${count} skills`;
+    btn.onclick = () => {
+      if (activeGrades.has(gr)) { activeGrades.delete(gr); btn.classList.remove('active'); }
+      else { activeGrades.add(gr); btn.classList.add('active'); }
+      renderAll();
+    };
+    gc.appendChild(btn);
+  });
+
+  const dl = document.getElementById('domainList');
+  domains.forEach(d => {
+    const c = DOMAIN_COLORS[d] || '#636e72';
+    const total = allSkills.filter(s => s.domain === d).length;
+    const focus = allSkills.filter(s => s.domain === d && s.is_focus_skill).length;
+    const pct = total ? Math.round(focus / total * 100) : 0;
+    const item = document.createElement('label');
+    item.className = 'domain-item';
+    item.innerHTML = `<input type="checkbox" checked data-domain="${d}"><div class="domain-dot" style="background:${c}"></div><div class="domain-info"><span class="domain-label">${d}</span><span class="domain-ratio">${focus}/${total}</span><div class="domain-bar"><div class="domain-bar-fill" style="width:${pct}%;background:${c}"></div></div></div>`;
+    item.querySelector('input').onchange = () => {
+      activeDomains.clear();
+      const checked = [...dl.querySelectorAll('input:checked')].map(i => i.dataset.domain);
+      if (checked.length < domains.length) checked.forEach(d => activeDomains.add(d));
+      renderAll();
+    };
+    dl.appendChild(item);
+  });
+
+  document.getElementById('focusOnly').onchange = renderAll;
+  document.getElementById('showEdges').onchange = renderAll;
+  document.getElementById('showLabels').onchange = renderAll;
+  document.getElementById('detailClose').onclick = () => { document.getElementById('detailPanel').classList.remove('open'); clearHighlight(); };
+  document.getElementById('resetBtn').onclick = () => {
+    activeGrades.clear(); activeDomains.clear();
+    document.getElementById('focusOnly').checked = false;
+    document.getElementById('showEdges').checked = true;
+    document.getElementById('showLabels').checked = false;
+    document.getElementById('search').value = '';
+    gc.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('active'));
+    dl.querySelectorAll('input').forEach(i => i.checked = true);
+    document.getElementById('detailPanel').classList.remove('open');
+    clearHighlight();
+    renderAll();
+  };
+
+  let t;
+  document.getElementById('search').oninput = () => { clearTimeout(t); t = setTimeout(renderAll, 300); };
+
+  // Click background to clear
+  svg.on('click', () => { clearHighlight(); document.getElementById('detailPanel').classList.remove('open'); });
+
+  // View tab switching
+  let currentView = 'graph';
+  const graphEl = document.getElementById('graph');
+  const listEl = document.getElementById('listView');
+  document.querySelectorAll('.view-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentView = tab.dataset.view;
+      if (currentView === 'graph') {
+        graphEl.style.display = '';
+        listEl.classList.remove('active');
+        document.getElementById('tooltip').style.display = 'none';
+      } else {
+        graphEl.style.display = 'none';
+        listEl.classList.add('active');
+        renderList();
+      }
+      // Show/hide graph-only toggles
+      document.getElementById('showEdges').closest('.toggle-row').style.display = currentView === 'graph' ? '' : 'none';
+      document.getElementById('showLabels').closest('.toggle-row').style.display = currentView === 'graph' ? '' : 'none';
+    };
+  });
+}
+
+function getFilteredSkills() {
+  const focusOnly = document.getElementById('focusOnly').checked;
+  const search = document.getElementById('search').value.toLowerCase();
+  return allSkills.filter((s, i) => {
+    if (activeGrades.size > 0 && !activeGrades.has(s.grade)) return false;
+    if (activeDomains.size > 0 && !activeDomains.has(s.domain)) return false;
+    if (focusOnly && !s.is_focus_skill) return false;
+    if (search && !s.skill_name.toLowerCase().includes(search) &&
+        !s.skill_code.toLowerCase().includes(search) &&
+        !s.full_description.toLowerCase().includes(search)) return false;
+    return true;
+  }).map((s, _, __, i) => ({ ...s, origIdx: allSkills.indexOf(s) }));
+}
+
+const collapsedGrades = new Set();
+
+function renderList() {
+  const container = document.getElementById('listView');
+  const filtered = getFilteredSkills();
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="list-empty">No skills match the current filters.</div>';
+    return;
+  }
+
+  // Group by grade, then by standard
+  const byGrade = new Map();
+  GRADE_ORDER.forEach(g => {
+    const skills = filtered.filter(s => s.grade === g);
+    if (skills.length) byGrade.set(g, skills);
+  });
+
+  let html = '';
+  byGrade.forEach((skills, grade) => {
+    const collapsed = collapsedGrades.has(grade);
+    const focusCount = skills.filter(s => s.is_focus_skill).length;
+    html += `<div class="list-grade-section">`;
+    html += `<div class="list-grade-header${collapsed ? ' collapsed' : ''}" data-grade="${grade}"><span class="chevron">\u25BC</span> Grade ${grade} <span class="count">${skills.length} skills \u00B7 ${focusCount} focus</span></div>`;
+
+    if (!collapsed) {
+      // Group by standard (skill_code + standard label)
+      const byStd = new Map();
+      skills.forEach(s => {
+        const key = s.skill_code;
+        if (!byStd.has(key)) byStd.set(key, { label: s.standard || s.skill_code, skills: [] });
+        byStd.get(key).skills.push(s);
+      });
+
+      byStd.forEach(({ label, skills: stdSkills }, code) => {
+        if (byStd.size > 1 || stdSkills.length > 1) {
+          html += `<div class="list-std-group">`;
+          html += `<div class="list-std-header">${label} (${stdSkills.length})</div>`;
+        }
+        stdSkills.forEach(s => {
+          const dc = DOMAIN_COLORS[s.domain] || '#636e72';
+          const focusColor = s.is_focus_skill ? '#fdcb6e' : 'transparent';
+          html += `<div class="list-skill-row" data-idx="${s.origIdx}">`;
+          html += `<span class="focus-indicator" style="background:${focusColor}"></span>`;
+          html += `<span class="skill-name">${s.skill_name}</span>`;
+          html += `<span class="skill-domain-tag" style="background:${dc}">${s.domain.length > 20 ? s.domain.substring(0,18) + '\u2026' : s.domain}</span>`;
+          html += `<span class="skill-code">${s.skill_code}</span>`;
+          html += `</div>`;
+        });
+        if (byStd.size > 1 || stdSkills.length > 1) {
+          html += `</div>`;
+        }
+      });
+    }
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+
+  // Bind events
+  container.querySelectorAll('.list-grade-header').forEach(el => {
+    el.onclick = () => {
+      const g = el.dataset.grade;
+      if (collapsedGrades.has(g)) collapsedGrades.delete(g); else collapsedGrades.add(g);
+      renderList();
+    };
+  });
+  container.querySelectorAll('.list-skill-row').forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.dataset.idx);
+      showDetail(idx);
+    };
+  });
+}
+
+// Zoom
+function initGraph() {
+  const container = document.querySelector('.main');
+  width = container.clientWidth;
+  height = container.clientHeight;
+
+  svg = d3.select('#graph');
+  const zoom = d3.zoom()
+    .scaleExtent([0.1, 5])
+    .on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+  g = svg.append('g');
+}
+
+// Theme toggle
+{
+  const btn = document.getElementById('themeBtn');
+  const saved = localStorage.getItem('theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  function updateIcon() {
+    const t = document.documentElement.getAttribute('data-theme');
+    btn.textContent = t === 'light' ? '\u2600' : '\u263E';
+  }
+  updateIcon();
+  btn.onclick = () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateIcon();
+    if (typeof renderAll === 'function' && allSkills.length) renderAll();
+  };
+}
+
+// Detail panel resize
+{
+  const panel = document.getElementById('detailPanel');
+  const handle = document.getElementById('detailResize');
+  let dragging = false;
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    dragging = true;
+    handle.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const newWidth = Math.max(280, Math.min(window.innerWidth - 300, window.innerWidth - e.clientX));
+    panel.style.width = newWidth + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('active');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+}
+
+fetch('skills.json').then(r => r.json()).then(data => {
+  allSkills = data;
+  prereqMap = buildPrereqEdges(data);
+  initGraph();
+  initUI();
+  // Default: grade 3
+  activeGrades.add('3');
+  document.querySelectorAll('.grade-btn').forEach(b => { if (b.textContent === '3') b.classList.add('active'); });
+  render();
+
+  window.addEventListener('resize', () => {
+    width = document.querySelector('.main').clientWidth;
+    height = document.querySelector('.main').clientHeight;
+    render();
+  });
+});
+</script>
+</body>
+</html>
