@@ -766,7 +766,7 @@ function showChainModal(idx) {
   const borderColor = isDark ? '#2a2d35' : '#ddd';
   const textColor = isDark ? '#e0e0e0' : '#333';
   const dimColor = isDark ? '#555' : '#999';
-  const currentBg = isDark ? 'rgba(9,132,227,0.15)' : 'rgba(9,132,227,0.08)';
+  const currentBg = isDark ? 'rgba(249,202,36,0.15)' : 'rgba(249,202,36,0.10)';
 
   // 현재 학년 컬럼 내 수직 스택: [sameGradePrereqs] gap [current] gap [sameGradeForwards]
   const currentColItems = [
@@ -809,12 +809,18 @@ function showChainModal(idx) {
   svg.setAttribute('height', svgH);
   svg.style.overflow = 'visible';
 
+  // 연결선 레이어 (항상 칩 뒤)
+  const lineLayer = document.createElementNS(ns, 'g');
+  const chipLayer = document.createElementNS(ns, 'g');
+  svg.appendChild(lineLayer);
+  svg.appendChild(chipLayer);
+
   // 칩 렌더 헬퍼
   function renderChip(item, chipX, chipY) {
     const isC = item.isCurrent;
     const chipBg = isC ? currentBg : (item.role === 'prereq' ? (isDark ? 'rgba(225,112,85,0.08)' : 'rgba(225,112,85,0.05)') : item.role === 'forward' ? (isDark ? 'rgba(116,185,255,0.08)' : 'rgba(116,185,255,0.05)') : panelBg);
-    const chipStroke = isC ? '#0984e3' : item.role === 'prereq' ? '#e17055' : item.role === 'forward' ? '#74b9ff' : borderColor;
-    const chipTextColor = isC ? '#0984e3' : item.role === 'prereq' ? (isDark ? '#e17055' : '#c0392b') : item.role === 'forward' ? (isDark ? '#74b9ff' : '#0984e3') : textColor;
+    const chipStroke = isC ? '#f9ca24' : item.role === 'prereq' ? '#e17055' : item.role === 'forward' ? '#74b9ff' : borderColor;
+    const chipTextColor = isC ? (isDark ? '#f9ca24' : '#b8860b') : item.role === 'prereq' ? (isDark ? '#e17055' : '#c0392b') : item.role === 'forward' ? (isDark ? '#74b9ff' : '#0984e3') : textColor;
 
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('x', chipX); rect.setAttribute('y', chipY);
@@ -828,7 +834,7 @@ function showChainModal(idx) {
       document.getElementById('chainModalOverlay').classList.remove('open');
       showDetail(item.idx);
     });
-    svg.appendChild(rect);
+    chipLayer.appendChild(rect);
 
     const name = item.skill.skill_name;
     const words = name.split(' ');
@@ -847,7 +853,7 @@ function showChainModal(idx) {
     t1.setAttribute('font-weight', isC ? '600' : '400');
     t1.style.pointerEvents = 'none';
     t1.textContent = line1;
-    svg.appendChild(t1);
+    chipLayer.appendChild(t1);
 
     if (line2) {
       const t2 = document.createElementNS(ns, 'text');
@@ -859,7 +865,7 @@ function showChainModal(idx) {
       t2.setAttribute('font-weight', isC ? '600' : '400');
       t2.style.pointerEvents = 'none';
       t2.textContent = line2.length > 22 ? line2.substring(0, 20) + '…' : line2;
-      svg.appendChild(t2);
+      chipLayer.appendChild(t2);
     }
 
     return { cx: chipX + COL_W / 2, cy: chipY + CHIP_H / 2, right: chipX + COL_W, left: chipX, top: chipY, bottom: chipY + CHIP_H };
@@ -876,7 +882,7 @@ function showChainModal(idx) {
     label.setAttribute('fill', dimColor);
     label.setAttribute('letter-spacing', '1');
     label.textContent = `Grade ${grade}`;
-    svg.appendChild(label);
+    chipLayer.appendChild(label);
   }
 
   // 경로 그리기 헬퍼
@@ -895,7 +901,7 @@ function showChainModal(idx) {
     path.setAttribute('stroke', color);
     path.setAttribute('stroke-width', '2');
     path.setAttribute('stroke-opacity', '0.8');
-    svg.insertBefore(path, svg.firstChild);
+    lineLayer.appendChild(path);
   }
 
   // 컬럼별 x 위치 맵
